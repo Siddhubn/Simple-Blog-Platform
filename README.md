@@ -46,8 +46,8 @@ This is a simple blog platform built using Flask with HTML and CSS for the front
 ## Installation
 1. Clone the repository:
    ```sh
-   git clone <repository_url>
-   cd <repository_folder>
+   git clone https://github.com/Siddhubn/Simple-Blog-Platform/
+   cd Simple-Blog-Platform
    ```
 2. Activate virtual environment:
    ```sh
