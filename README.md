@@ -1,14 +1,14 @@
 # Simple Blog Platform
 
 This is a simple blog platform built using Flask with HTML and CSS for the frontend. It allows users to create, view, and delete blog posts.
-
+---
 ## Features
 - Create new blog posts
 - View all posts on the homepage
 - View individual posts
 - Delete posts
 - Responsive dark-themed UI
-
+---
 ## File Structure
 ```
 .
@@ -21,7 +21,7 @@ This is a simple blog platform built using Flask with HTML and CSS for the front
 ├── database.db (SQLite database for storing posts)
 ├── README.md (This file)
 ```
-
+---
 ## Templates Overview
 ### create.html
 - Contains a form for creating new posts with fields for title and content.
@@ -37,12 +37,12 @@ This is a simple blog platform built using Flask with HTML and CSS for the front
 ### post.html
 - Displays a single blog post with its title and content.
 - Includes a button to return to the homepage.
-
+---
 ## Technologies Used
 - Flask (Backend framework)
 - HTML & CSS (Frontend)
 - SQLite (Database for storing posts)
-
+---
 ## Installation
 1. Clone the repository:
    ```sh
@@ -61,17 +61,17 @@ This is a simple blog platform built using Flask with HTML and CSS for the front
    ```
    http://127.0.0.1:5000/
    ```
-
+---
 ## Usage
 - Click "Create New Post" to add a new blog post.
 - Click on a post title to view its content.
 - Click "Delete" to remove a post.
-
+---
 ## Future Enhancements
 - User authentication system
 - Edit post functionality
 - Improved database management
 - Rich text editor for creating posts
-
+---
 ## Author:
 This project's author is [Siddharth B N](https://github.com/Siddhubn).
