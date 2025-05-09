@@ -1,0 +1,31 @@
+<h2>Welcome, {{ session.username }}</h2>
+<a href="{{ url_for('logout') }}">Logout</a> | 
+<a href="{{ url_for('create') }}">Create New Post</a>
+
+<h3>Update Profile</h3>
+<form action="{{ url_for('update_profile') }}" method="POST" enctype="multipart/form-data">
+  <textarea name="bio" placeholder="Your bio">{{ user.bio }}</textarea><br>
+  <input type="file" name="profile_pic"><br>
+  <button type="submit">Update</button>
+</form>
+
+<h3>Your Posts</h3>
+
+<ul>
+  {% for post in posts %}
+    <li>
+      <strong>{{ post.title }}</strong> - {{ post.timestamp }}<br>
+      {% if post.is_public %}
+        <span style="color: green;">Public</span>
+      {% else %}
+        <span style="color: red;">Private</span>
+      {% endif %}
+      <p>{{ post.content }}</p>
+
+      <a href="{{ url_for('edit', post_id=post.id) }}">Edit</a> |
+      <form action="{{ url_for('delete', post_id=post.id) }}" method="POST" style="display:inline;">
+        <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+      </form>
+    </li>
+  {% endfor %}
+</ul>
