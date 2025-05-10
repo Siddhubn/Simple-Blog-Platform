@@ -5,9 +5,9 @@ from werkzeug.utils import secure_filename
 import os
 import time
 from datetime import datetime
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-from dotenv import load_dotenv
 load_dotenv()
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
