@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'helloblogs'
 
 # Create uploads directory for profile pictures
 if not os.path.exists('static/uploads'):
