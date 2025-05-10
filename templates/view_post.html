@@ -5,23 +5,30 @@
       <strong>{{ comment.username }}</strong> 
       <small>{{ comment.timestamp }}</small><br>
       {{ comment.content }}
+      
+      {% if session.get('user_id') == comment.user_id %}
+        <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="display:inline;">
+          <button type="submit">❌</button>
+        </form> <br>
+      {% endif %}
     </div>
   {% else %}
-    <p>No comments yet.</p>
+    <p>No comments yet. <br> <a href="{{ url_for('index') }}">Back to Post</a></p>
   {% endfor %}
 </div>
 
 {% if session.get('user_id') %}
+  <!-- Comment form if logged in -->
   <form action="{{ url_for('comment', post_id=post.id) }}" method="POST">
     <textarea name="content" rows="3" placeholder="Write a comment..." required></textarea><br>
     <button type="submit">Post Comment</button>
   </form>
-{% else %}
-  <p><a href="{{ url_for('login') }}">Login</a> to comment.</p>
-{% endif %}
 
-{% if session.get('user_id') == comment.user_id %}
-  <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="display:inline;">
-    <button type="submit">❌</button>
-  </form>
+  <!-- Option to cancel and go back to posts page -->
+  <p><a href="{{ url_for('index') }}">Back to Posts</a></p>
+  
+{% else %}
+  <!-- If the user is not logged in, show login prompt -->
+  <p><a href="{{ url_for('login') }}">Login</a> to comment.</p> |
+  <a href="{{ url_for('index') }}">Go to Posts</a>
 {% endif %}

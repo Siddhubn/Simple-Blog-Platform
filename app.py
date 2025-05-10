@@ -3,10 +3,14 @@ import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
+import time
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'helloblogs'
+from dotenv import load_dotenv
+load_dotenv()
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 # Create uploads directory for profile pictures
 if not os.path.exists('static/uploads'):
@@ -90,7 +94,7 @@ def dashboard():
 def logout():
     session.clear()
     flash("Logged out successfully.")
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():
@@ -163,6 +167,41 @@ def delete(post_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
+@app.route('/post/<int:post_id>/comment', methods=['POST'])
+def comment(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    content = request.form['content']
+    user_id = session['user_id']
+
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO comments (user_id, post_id, content) VALUES (?, ?, ?)',
+        (user_id, post_id, content)
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('view_post', post_id=post_id))
+
+@app.route('/comment/<int:comment_id>/delete', methods=['POST'])
+def delete_comment(comment_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    comment = conn.execute('SELECT * FROM comments WHERE id = ?', (comment_id,)).fetchone()
+
+    # Optional: only allow comment owner to delete
+    if comment and comment['user_id'] == session['user_id']:
+        conn.execute('DELETE FROM comments WHERE id = ?', (comment_id,))
+        conn.commit()
+    
+    conn.close()
+
+    return redirect(url_for('view_post', post_id=comment['post_id']))
+
 @app.route('/profile/<int:user_id>', methods=['GET', 'POST'])
 def profile(user_id):
     if 'user_id' not in session:
@@ -177,12 +216,18 @@ def profile(user_id):
         return redirect(url_for('index'))
 
     # Count followers and following
-    follower_count = conn.execute('SELECT COUNT(*) FROM followers WHERE following_id = ?', (user_id,)).fetchone()[0]
-    following_count = conn.execute('SELECT COUNT(*) FROM followers WHERE follower_id = ?', (user_id,)).fetchone()[0]
+    follower_count = conn.execute(
+        'SELECT COUNT(*) FROM followers WHERE following_id = ?', (user_id,)
+    ).fetchone()[0]
+    following_count = conn.execute(
+        'SELECT COUNT(*) FROM followers WHERE follower_id = ?', (user_id,)
+    ).fetchone()[0]
 
     # Check if the logged-in user is following the profile user
-    is_following = conn.execute('SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?',
-                                (session['user_id'], user_id)).fetchone() is not None
+    is_following = conn.execute(
+        'SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?',
+        (session['user_id'], user_id)
+    ).fetchone() is not None
 
     # Fetch public posts of the user
     posts = conn.execute('''
@@ -195,8 +240,12 @@ def profile(user_id):
 
     conn.close()
 
-    return render_template('profile.html', user=user, follower_count=follower_count, 
-                           following_count=following_count, is_following=is_following, posts=posts)
+    return render_template('profile.html',
+                           user=user,
+                           follower_count=follower_count,
+                           following_count=following_count,
+                           is_following=is_following,
+                           posts=posts)
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
@@ -250,16 +299,7 @@ def follow_user(user_id):
 @app.route('/')
 def index():
     conn = get_db_connection()
-
-    # Fetch public posts
-    posts = conn.execute('''
-        SELECT posts.*, users.username 
-        FROM posts
-        JOIN users ON posts.user_id = users.id
-        WHERE posts.is_public = 1
-        ORDER BY posts.timestamp DESC
-    ''').fetchall()
-
+    posts = conn.execute('SELECT * FROM posts WHERE is_public = 1 ORDER BY timestamp DESC').fetchall()
     conn.close()
     return render_template('index.html', posts=posts)
 
@@ -279,16 +319,44 @@ def upload_profile_pic():
         return redirect(url_for('profile', user_id=session['user_id']))
 
     filename = secure_filename(file.filename)
-    filepath = os.path.join('static/uploads', filename)
+    
+    # Generate a unique filename using user_id and current timestamp
+    unique_filename = f"{session['user_id']}_{int(time.time())}_{filename}"
+    
+    filepath = os.path.join('static/uploads', unique_filename)
     file.save(filepath)
 
+    # Update the database with the new file path
     conn = get_db_connection()
     conn.execute('UPDATE users SET profile_pic = ? WHERE id = ?', (filepath, session['user_id']))
     conn.commit()
     conn.close()
 
-    flash("Profile picture updated successfully!")
+    flash("Profile picture updated.")
     return redirect(url_for('profile', user_id=session['user_id']))
+
+@app.route('/post/<int:post_id>', methods=['GET'])
+def view_post(post_id):
+    conn = get_db_connection()
+
+    # Fetch post details
+    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+
+    if not post:
+        conn.close()
+        flash("Post not found.")
+        return redirect(url_for('index'))
+
+    # Fetch comments for this post
+    comments = conn.execute('SELECT * FROM comments WHERE post_id = ?', (post_id,)).fetchall()
+
+    conn.close()
+
+    return render_template('view_post.html', post=post, comments=comments)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

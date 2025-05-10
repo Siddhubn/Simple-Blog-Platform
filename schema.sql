@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS followers (
     FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Optional: Create comments table (if you need to support comments)
+-- Create comments table (if you need to support comments)
 CREATE TABLE IF NOT EXISTS comments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -47,5 +47,6 @@ CREATE TABLE IF NOT EXISTS comments (
     content TEXT NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    INDEX (post_id)  -- Add an index on post_id for faster lookup
 );

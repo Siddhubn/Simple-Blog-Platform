@@ -11,7 +11,7 @@
       <h3>{{ post.title }}</h3>
       <p><i>by {{ post.username }}</i> on {{ post.timestamp }}</p>
       <p>{{ post.content }}</p>
-      <a href="{{ url_for('view_post', post_id=post.id) }}">🔗 Share</a>
+      <a href="{{ url_for('view_post', post_id=post.id) }}">Comment 💬</a>
       <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST" style="display:inline;">
         <button type="submit">
             ❤️ {{ post.like_count if post.like_count else 0 }}
@@ -21,5 +21,3 @@
     </li>
   {% endfor %}
 </ul>
-
-
