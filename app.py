@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -70,14 +72,14 @@ def dashboard():
 
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-    
+
     if not user:
         conn.close()
         flash("User not found.")
         return redirect(url_for('login'))
 
     # Fetch user posts
-    posts = conn.execute('SELECT * FROM posts WHERE user_id = ? ORDER BY timestamp DESC', 
+    posts = conn.execute('SELECT * FROM posts WHERE user_id = ? ORDER BY timestamp DESC',
                          (session['user_id'],)).fetchall()
 
     conn.close()
@@ -89,8 +91,6 @@ def logout():
     session.clear()
     flash("Logged out successfully.")
     return redirect(url_for('login'))
-
-from datetime import datetime
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():
@@ -163,36 +163,6 @@ def delete(post_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
-@app.route('/edit/<int:post_id>', methods=['GET', 'POST'])
-def edit(post_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ? AND user_id = ?', 
-                        (post_id, session['user_id'])).fetchone()
-
-    if not post:
-        conn.close()
-        flash("Post not found.")
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        is_public = 1 if 'is_public' in request.form else 0
-
-        conn.execute('UPDATE posts SET title = ?, content = ?, is_public = ? WHERE id = ?',
-                     (title, content, is_public, post_id))
-        conn.commit()
-        conn.close()
-
-        flash("Post updated successfully.")
-        return redirect(url_for('dashboard'))
-
-    conn.close()
-    return render_template('edit.html', post=post)
-
 @app.route('/profile/<int:user_id>', methods=['GET', 'POST'])
 def profile(user_id):
     if 'user_id' not in session:
@@ -234,7 +204,7 @@ def like_post(post_id):
         return redirect(url_for('login'))
 
     conn = get_db_connection()
-    
+
     # Check if the user has already liked the post
     existing_like = conn.execute('SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
                                  (session['user_id'], post_id)).fetchone()
@@ -258,7 +228,7 @@ def follow_user(user_id):
         return redirect(url_for('login'))
 
     conn = get_db_connection()
-    
+
     # Check if already following
     following = conn.execute('SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?',
                              (session['user_id'], user_id)).fetchone()
@@ -274,7 +244,7 @@ def follow_user(user_id):
 
     conn.commit()
     conn.close()
-    
+
     return redirect(url_for('profile', user_id=user_id))
 
 @app.route('/')
@@ -293,26 +263,32 @@ def index():
     conn.close()
     return render_template('index.html', posts=posts)
 
-@app.route('/update_profile', methods=['POST'])
-def update_profile():
+@app.route('/upload_profile_pic', methods=['POST'])
+def upload_profile_pic():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    bio = request.form['bio']
-    profile_pic = request.files['profile_pic'] if 'profile_pic' in request.files else None
+    if 'profile_pic' not in request.files:
+        flash("No file selected.")
+        return redirect(url_for('profile', user_id=session['user_id']))
+
+    file = request.files['profile_pic']
+
+    if file.filename == '':
+        flash("No file selected.")
+        return redirect(url_for('profile', user_id=session['user_id']))
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join('static/uploads', filename)
+    file.save(filepath)
 
     conn = get_db_connection()
-
-    if profile_pic:
-        filename = secure_filename(profile_pic.filename)
-        profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        conn.execute('UPDATE users SET bio = ?, profile_pic = ? WHERE id = ?', 
-                     (bio, filename, session['user_id']))
-    else:
-        conn.execute('UPDATE users SET bio = ? WHERE id = ?', (bio, session['user_id']))
-
+    conn.execute('UPDATE users SET profile_pic = ? WHERE id = ?', (filepath, session['user_id']))
     conn.commit()
     conn.close()
 
-    flash("Profile updated successfully.")
-    return redirect(url_for('dashboard'))
+    flash("Profile picture updated successfully!")
+    return redirect(url_for('profile', user_id=session['user_id']))
+
+if __name__ == '__main__':
+    app.run(debug=True)
